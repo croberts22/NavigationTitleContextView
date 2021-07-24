@@ -13,6 +13,7 @@
 		2CC3A9E026A9EC0600D836DD /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2CC3A9DE26A9EC0600D836DD /* Main.storyboard */; };
 		2CC3A9E226A9EC0700D836DD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2CC3A9E126A9EC0700D836DD /* Assets.xcassets */; };
 		2CC3A9E526A9EC0700D836DD /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2CC3A9E326A9EC0700D836DD /* LaunchScreen.storyboard */; };
+		2CC3A9ED26A9EC1C00D836DD /* NavigationTitleStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CC3A9EC26A9EC1C00D836DD /* NavigationTitleStatusView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +25,7 @@
 		2CC3A9E126A9EC0700D836DD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2CC3A9E426A9EC0700D836DD /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		2CC3A9E626A9EC0700D836DD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		2CC3A9EC26A9EC1C00D836DD /* NavigationTitleStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationTitleStatusView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,6 +65,7 @@
 				2CC3A9E126A9EC0700D836DD /* Assets.xcassets */,
 				2CC3A9E326A9EC0700D836DD /* LaunchScreen.storyboard */,
 				2CC3A9E626A9EC0700D836DD /* Info.plist */,
+				2CC3A9EC26A9EC1C00D836DD /* NavigationTitleStatusView.swift */,
 			);
 			path = NavigationTitleStatusView;
 			sourceTree = "<group>";
@@ -140,6 +143,7 @@
 				2CC3A9DD26A9EC0600D836DD /* ViewController.swift in Sources */,
 				2CC3A9D926A9EC0600D836DD /* AppDelegate.swift in Sources */,
 				2CC3A9DB26A9EC0600D836DD /* SceneDelegate.swift in Sources */,
+				2CC3A9ED26A9EC1C00D836DD /* NavigationTitleStatusView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
