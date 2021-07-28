@@ -123,26 +123,12 @@ public class NavigationTitleContextView: UIView {
     }
     
     private func displaySubtitle() {
-        
-        resetAnimators()
-        
         print("Displaying subtitle for \(subtitleDisplayDuration) seconds...")
         
         subtitleLabel.isHidden = false
         
-        displayAnimator = animator {
-            print("Displaying subtitle.")
-            self.subtitleLabel.isHidden = false
-            self.subtitleLabel.alpha = 1.0
-            self.layoutIfNeeded()
-        }
-        
-        hideAnimator = animator {
-            print("Hiding subtitle.")
-            self.subtitleLabel.alpha = 0.0
-            self.subtitleLabel.isHidden = true
-            self.layoutIfNeeded()
-        }
+        prepareDisplayAnimator()
+        prepareHideAnimator()
         
         displayAnimator.addCompletion { [weak self] _ in
             guard let self = self else { return }
@@ -153,15 +139,7 @@ public class NavigationTitleContextView: UIView {
     }
     
     private func hideSubtitle() {
-        resetAnimators()
-        
-        hideAnimator = animator {
-            print("Hiding subtitle.")
-            self.subtitleLabel.alpha = 0.0
-            self.subtitleLabel.isHidden = true
-            self.layoutIfNeeded()
-        }
-        
+        prepareHideAnimator()
         hideAnimator.startAnimation()
     }
     
@@ -183,6 +161,27 @@ public class NavigationTitleContextView: UIView {
         UIViewPropertyAnimator(duration: animateSubtitleUpdates ? animationDuration : 0.0,
                                curve: .easeInOut,
                                animations: animations)
+    }
+    
+    private func prepareDisplayAnimator() {
+        resetAnimators()
+        displayAnimator = animator {
+            print("Queuing displaying subtitle animation.")
+            self.subtitleLabel.isHidden = false
+            self.subtitleLabel.alpha = 1.0
+            self.layoutIfNeeded()
+        }
+    }
+    
+    private func prepareHideAnimator() {
+        resetAnimators()
+        hideAnimator = animator {
+            print("Queuing hiding subtitle animation.")
+            self.subtitleLabel.alpha = 0.0
+            self.subtitleLabel.isHidden = true
+            self.layoutIfNeeded()
+        }
+        
     }
     
     // MARK: - Initializers
