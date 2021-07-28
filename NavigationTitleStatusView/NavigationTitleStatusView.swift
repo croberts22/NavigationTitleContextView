@@ -5,19 +5,57 @@
 //  Created by Corey Roberts on 7/22/21.
 //
 
+import Combine
 import UIKit
 
 public class NavigationTitleStatusView: UIView {
     
-    var title: String? {
+    // MARK: - Properties
+    
+    /// The title of the view.
+    public var title: String? {
         get { titleLabel.text }
         set { titleLabel.text = newValue }
     }
     
-    var subtitle: String? {
+    /// The subtitle of the view. Depending on the properties set on this view,
+    /// the subtitle updates will animate in for a select duration of time.
+    public var subtitle: String? {
         get { subtitleLabel.text }
-        set { subtitleLabel.text = newValue }
+        set {
+            subtitleLabel.text = newValue
+            
+            if animateSubtitleUpdates {
+                performAnimation(hideAfter: subtitleDisplayDuration)
+            }
+        }
     }
+    
+    /// Determines if the subtitle should be animated. Defaults to `true`.
+    public var animateSubtitleUpdates: Bool = false
+    
+    /// The length at which the subtitle should remain visible before it disappears. Defaults to `3.0` seconds.
+    public var subtitleDisplayDuration: TimeInterval = 3.0
+    
+    /// The animation duration for animating the subtitle. Defaults to `0.3` seconds.
+    public var animationDuration: TimeInterval = 0.3
+    
+    /// The animation curve for animating the subtitle. Defaults to `.easeInOut`.
+    public var animationCurve: UIView.AnimationCurve = .easeInOut
+    
+    /// An image that is displayed to the trailing edge of the navigation title in order to denote a tappable action.
+    public var contextMenuImage: UIImage? = UIImage(systemName: "chevron.down")
+    
+    /// Determines if the context menu image should be visible. Defaults to `true`.
+    public lazy var shouldShowContextMenu: Bool = true {
+        didSet {
+            menuImageView.isHidden = !shouldShowContextMenu
+        }
+    }
+    
+//    public var userInteractionPublisher: AnyPublisher<Void, Never> = {
+//        
+//    }
     
     private let titleStackView: UIStackView = {
         let stackView = UIStackView()
@@ -68,39 +106,83 @@ public class NavigationTitleStatusView: UIView {
         return label
     }()
     
-    public func setSubtitle(_ subtitle: String?, animated: Bool = true, hideAfter: TimeInterval = 5.0) {
-        
-        self.subtitle = subtitle
-        
-        guard subtitle != nil else {
-            animate(hideSubtitle: true)
-            return
-        }
-        
-        let animation = CATransition()
-        animation.duration = 0.3
-        animation.type = .push
-        animation.subtype = .fromTop
-        animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-        
-        subtitleLabel.layer.add(animation, forKey: "updateTitle")
-        subtitleLabel.isHidden = false
+    private lazy var animator = UIViewPropertyAnimator(duration: subtitleDisplayDuration,
+                                                       curve: animationCurve,
+                                                       animations: nil)
+    
+    private lazy var displayAnimator = UIViewPropertyAnimator(duration: subtitleDisplayDuration,
+                                                              curve: animationCurve,
+                                                              animations: nil)
+    
+    private lazy var hideAnimator = UIViewPropertyAnimator(duration: subtitleDisplayDuration,
+                                                           curve: animationCurve,
+                                                           animations: nil)
+    
+    private func performAnimation(hideAfter duration: TimeInterval) {
+        subtitle == nil ? hideSubtitle() : displaySubtitle()
     }
     
-    private func animate(hideSubtitle: Bool) {
+    private func displaySubtitle() {
         
-        guard subtitleLabel.isHidden != hideSubtitle else { return }
+        resetAnimators()
         
-        UIView.animate(withDuration: 0.3,
-                       delay: 0.0,
-                       usingSpringWithDamping: 0.9,
-                       initialSpringVelocity: 1,
-                       options: [],
-                       animations: {
-                        self.subtitleLabel.isHidden = hideSubtitle
-                        self.layoutIfNeeded()
-                       },
-                       completion: nil)
+        print("Displaying subtitle for \(subtitleDisplayDuration) seconds...")
+        
+        subtitleLabel.isHidden = false
+        
+        displayAnimator = animator {
+            print("Displaying subtitle.")
+            self.subtitleLabel.isHidden = false
+            self.subtitleLabel.alpha = 1.0
+            self.layoutIfNeeded()
+        }
+        
+        hideAnimator = animator {
+            print("Hiding subtitle.")
+            self.subtitleLabel.alpha = 0.0
+            self.subtitleLabel.isHidden = true
+            self.layoutIfNeeded()
+        }
+        
+        displayAnimator.addCompletion { [weak self] _ in
+            guard let self = self else { return }
+            self.hideAnimator.startAnimation(afterDelay: self.subtitleDisplayDuration)
+        }
+     
+        displayAnimator.startAnimation()
+    }
+    
+    private func hideSubtitle() {
+        resetAnimators()
+        
+        hideAnimator = animator {
+            print("Hiding subtitle.")
+            self.subtitleLabel.alpha = 0.0
+            self.subtitleLabel.isHidden = true
+            self.layoutIfNeeded()
+        }
+        
+        hideAnimator.startAnimation()
+    }
+    
+    private func resetAnimators() {
+        let runningAnimators = [displayAnimator, hideAnimator].filter(\.isRunning)
+        runningAnimators.forEach { animator in
+            print("Animation is running currently, forcing it to end!")
+            animator.stopAnimation(false)
+            animator.finishAnimation(at: .end)
+        }
+    }
+    
+    public func setSubtitle(_ subtitle: String?, animated: Bool = true, hideAfter duration: TimeInterval = 5.0) {
+        self.subtitle = subtitle
+        performAnimation(hideAfter: duration)
+    }
+    
+    private func animator(with animations: (() -> Void)?) -> UIViewPropertyAnimator {
+        UIViewPropertyAnimator(duration: animateSubtitleUpdates ? animationDuration : 0.0,
+                               curve: .easeInOut,
+                               animations: animations)
     }
     
     // MARK: - Initializers
@@ -119,7 +201,6 @@ public class NavigationTitleStatusView: UIView {
     
     private func setup() {
 
-        backgroundColor = .systemBlue
         clipsToBounds = true
         
         addSubview(labelStackView)
@@ -129,10 +210,6 @@ public class NavigationTitleStatusView: UIView {
         labelStackView.addArrangedSubview(titleStackView)
         labelStackView.addArrangedSubview(subtitleLabel)
 
-        titleStackView.backgroundColor = .systemGray
-        menuImageView.backgroundColor = .green
-        subtitleLabel.backgroundColor = .systemOrange
-        
         NSLayoutConstraint.activate([
             labelStackView.leadingAnchor.constraint(equalTo: leadingAnchor),
             labelStackView.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -149,5 +226,4 @@ public class NavigationTitleStatusView: UIView {
             self.subtitle = nil
         }
     }
-    
 }
