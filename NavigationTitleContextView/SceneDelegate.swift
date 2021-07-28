@@ -1,6 +1,6 @@
 //
 //  SceneDelegate.swift
-//  NavigationTitleStatusView
+//  NavigationTitleContextView
 //
 //  Created by Corey Roberts on 7/22/21.
 //

@@ -1,6 +1,6 @@
 //
-//  NavigationTitleStatusView.swift
-//  NavigationTitleStatusView
+//  NavigationTitleContextView.swift
+//  NavigationTitleContextView
 //
 //  Created by Corey Roberts on 7/22/21.
 //
@@ -8,7 +8,7 @@
 import Combine
 import UIKit
 
-public class NavigationTitleStatusView: UIView {
+public class NavigationTitleContextView: UIView {
     
     // MARK: - Properties
     
@@ -54,7 +54,7 @@ public class NavigationTitleStatusView: UIView {
     }
     
 //    public var userInteractionPublisher: AnyPublisher<Void, Never> = {
-//        
+//
 //    }
     
     private let titleStackView: UIStackView = {

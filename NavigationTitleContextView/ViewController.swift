@@ -1,6 +1,6 @@
 //
 //  ViewController.swift
-//  NavigationTitleStatusView
+//  NavigationTitleContextView
 //
 //  Created by Corey Roberts on 7/22/21.
 //
@@ -9,8 +9,8 @@ import UIKit
 
 class ViewController: UITableViewController {
 
-    private let titleView: NavigationTitleStatusView = {
-        let titleView = NavigationTitleStatusView()
+    private let titleView: NavigationTitleContextView = {
+        let titleView = NavigationTitleContextView()
         titleView.translatesAutoresizingMaskIntoConstraints = false
         return titleView
     }()
