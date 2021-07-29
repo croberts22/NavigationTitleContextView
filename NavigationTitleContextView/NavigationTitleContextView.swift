@@ -32,7 +32,7 @@ public class NavigationTitleContextView: UIView {
     }
 
     /// Determines if the subtitle should be animated. Defaults to `true`.
-    public var animateSubtitleUpdates: Bool = false
+    public var animateSubtitleUpdates: Bool = true
 
     /// The length at which the subtitle should remain visible before it disappears. Defaults to `3.0` seconds.
     public var subtitleDisplayDuration: TimeInterval = 3.0
@@ -49,13 +49,15 @@ public class NavigationTitleContextView: UIView {
     /// Determines if the context menu image should be visible. Defaults to `true`.
     public lazy var shouldShowContextMenu: Bool = true {
         didSet {
-            menuImageView.isHidden = !shouldShowContextMenu
+            menuButton.isHidden = !shouldShowContextMenu
         }
     }
 
-//    public var userInteractionPublisher: AnyPublisher<Void, Never> = {
-//
-//    }
+    public lazy var userInteractionPublisher: AnyPublisher<Void, Never> = {
+        userInteractionSubject.eraseToAnyPublisher()
+    }()
+
+    private var userInteractionSubject = PassthroughSubject<Void, Never>()
 
     private let titleStackView: UIStackView = {
         let stackView = UIStackView()
@@ -86,13 +88,16 @@ public class NavigationTitleContextView: UIView {
         return label
     }()
 
-    private let menuImageView: UIImageView = {
+    private let menuButton: UIButton = {
+        let button = UIButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setContentHuggingPriority(.required, for: .horizontal)
+
         let image = UIImage(systemName: "chevron.down")
-        let imageView = UIImageView(image: image)
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.setContentHuggingPriority(.required, for: .horizontal)
-        imageView.contentMode = .scaleAspectFit
-        return imageView
+        button.setImage(image, for: .normal)
+        button.imageView?.contentMode = .scaleAspectFit
+        button.addTarget(self, action: #selector(menuTapped), for: .touchUpInside)
+        return button
     }()
 
     private let subtitleLabel: UILabel = {
@@ -106,10 +111,6 @@ public class NavigationTitleContextView: UIView {
         return label
     }()
 
-    private lazy var animator = UIViewPropertyAnimator(duration: subtitleDisplayDuration,
-                                                       curve: animationCurve,
-                                                       animations: nil)
-
     private lazy var displayAnimator = UIViewPropertyAnimator(duration: subtitleDisplayDuration,
                                                               curve: animationCurve,
                                                               animations: nil)
@@ -118,12 +119,23 @@ public class NavigationTitleContextView: UIView {
                                                            curve: animationCurve,
                                                            animations: nil)
 
-    private func performAnimation(hideAfter _: TimeInterval) {
-        subtitle == nil ? hideSubtitle() : displaySubtitle()
+    private func performAnimation(hideAfter duration: TimeInterval) {
+        subtitle == nil ? hideSubtitle() : displaySubtitle(hideAfter: duration)
     }
 
-    private func displaySubtitle() {
-        print("Displaying subtitle for \(subtitleDisplayDuration) seconds...")
+    private func displaySubtitle(hideAfter duration: TimeInterval? = nil) {
+
+        let displayDuration = duration ?? subtitleDisplayDuration
+
+        print("Displaying subtitle for \(displayDuration) seconds...")
+
+        // If the hiding animator is queued up, let's stop it and re-queue it.
+        // This implies that there is already text we're displaying. In this case,
+        // we simply just replace the copy and reset the animation timer.
+        if hideAnimator.isRunning {
+            hideAnimator.stopAnimation(false)
+            hideAnimator.finishAnimation(at: .start)
+        }
 
         subtitleLabel.isHidden = false
 
@@ -132,7 +144,7 @@ public class NavigationTitleContextView: UIView {
 
         displayAnimator.addCompletion { [weak self] _ in
             guard let self = self else { return }
-            self.hideAnimator.startAnimation(afterDelay: self.subtitleDisplayDuration)
+            self.hideAnimator.startAnimation(afterDelay: displayDuration)
         }
 
         displayAnimator.startAnimation()
@@ -158,14 +170,15 @@ public class NavigationTitleContextView: UIView {
     }
 
     private func animator(with animations: (() -> Void)?) -> UIViewPropertyAnimator {
-        UIViewPropertyAnimator(duration: animateSubtitleUpdates ? animationDuration : 0.0,
+        UIViewPropertyAnimator(duration: animateSubtitleUpdates ? animationDuration : 0.00001,
                                curve: .easeInOut,
                                animations: animations)
     }
 
     private func prepareDisplayAnimator() {
         resetAnimators()
-        displayAnimator = animator {
+        displayAnimator = animator { [weak self] in
+            guard let self = self else { return }
             print("Queuing displaying subtitle animation.")
             self.subtitleLabel.isHidden = false
             self.subtitleLabel.alpha = 1.0
@@ -175,12 +188,19 @@ public class NavigationTitleContextView: UIView {
 
     private func prepareHideAnimator() {
         resetAnimators()
-        hideAnimator = animator {
+        hideAnimator = animator { [weak self] in
+            guard let self = self else { return }
             print("Queuing hiding subtitle animation.")
             self.subtitleLabel.alpha = 0.0
             self.subtitleLabel.isHidden = true
             self.layoutIfNeeded()
         }
+    }
+
+    // MARK: - User Interaction Methods
+
+    @objc private func menuTapped() {
+        userInteractionSubject.send()
     }
 
     // MARK: - Initializers
@@ -204,7 +224,7 @@ public class NavigationTitleContextView: UIView {
         addSubview(labelStackView)
 
         titleStackView.addArrangedSubview(titleLabel)
-        titleStackView.addArrangedSubview(menuImageView)
+        titleStackView.addArrangedSubview(menuButton)
         labelStackView.addArrangedSubview(titleStackView)
         labelStackView.addArrangedSubview(subtitleLabel)
 

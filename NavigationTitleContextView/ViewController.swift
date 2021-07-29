@@ -19,20 +19,9 @@ class ViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
         titleView.title = "Context Title Demo"
-
         navigationItem.titleView = titleView
-
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "CellIdentifier")
-
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-//            self?.titleView.subtitle = "Synchronizing with webservices now..."
-//
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) { [weak self] in
-//                self?.titleView.subtitle = "Done synchronizing, yay!"
-//            }
-//        }
     }
 }
 
@@ -64,5 +53,7 @@ extension ViewController {
         default:
             break
         }
+
+        tableView.deselectRow(at: indexPath, animated: true)
     }
 }
