@@ -44,7 +44,8 @@ public class NavigationTitleContextView: UIView {
     public var animationCurve: UIView.AnimationCurve = .easeInOut
 
     /// An image that is displayed to the trailing edge of the navigation title in order to denote a tappable action.
-    public var contextMenuImage: UIImage? = UIImage(systemName: "chevron.down")
+    /// Defaults to using the `chevron.down` system image.
+    public var contextMenuImage: UIImage? = UIImage(systemName: "chevron.down")?.withRenderingMode(.alwaysTemplate)
 
     /// Determines if the context menu image should be visible. Defaults to `true`.
     public lazy var shouldShowContextMenu: Bool = true {
@@ -54,7 +55,9 @@ public class NavigationTitleContextView: UIView {
     }
 
     public lazy var userInteractionPublisher: AnyPublisher<Void, Never> = {
-        userInteractionSubject.eraseToAnyPublisher()
+        userInteractionSubject
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
     }()
 
     private var userInteractionSubject = PassthroughSubject<Void, Never>()
@@ -89,11 +92,11 @@ public class NavigationTitleContextView: UIView {
     }()
 
     private let menuButton: UIButton = {
-        let button = UIButton()
+        let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.setContentHuggingPriority(.required, for: .horizontal)
 
-        let image = UIImage(systemName: "chevron.down")
+        let image = UIImage(systemName: "chevron.down")?.withRenderingMode(.alwaysTemplate)
         button.setImage(image, for: .normal)
         button.imageView?.contentMode = .scaleAspectFit
         button.addTarget(self, action: #selector(menuTapped), for: .touchUpInside)
@@ -220,6 +223,7 @@ public class NavigationTitleContextView: UIView {
     private func setup() {
 
         clipsToBounds = true
+        tintColor = .label
 
         addSubview(labelStackView)
 
@@ -229,6 +233,7 @@ public class NavigationTitleContextView: UIView {
         labelStackView.addArrangedSubview(subtitleLabel)
 
         NSLayoutConstraint.activate([
+            menuButton.widthAnchor.constraint(equalToConstant: 10),
             labelStackView.leadingAnchor.constraint(equalTo: leadingAnchor),
             labelStackView.trailingAnchor.constraint(equalTo: trailingAnchor),
             labelStackView.topAnchor.constraint(equalTo: topAnchor),
