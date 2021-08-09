@@ -6,8 +6,10 @@
 //
 
 import Combine
+import OSLog
 import UIKit
 
+/// A view designed to display contextual information within a `UINavigationItem`.
 public class NavigationTitleContextView: UIView {
 
     // MARK: - Properties
@@ -54,13 +56,18 @@ public class NavigationTitleContextView: UIView {
         }
     }
 
+    /// A publisher that emits user interaction updates, particularly when the user taps on the context menu.
+    /// This publisher emits no events if `shouldShowContextMenu` is `false`.
     public lazy var userInteractionPublisher: AnyPublisher<Void, Never> = {
         userInteractionSubject
             .receive(on: DispatchQueue.main)
             .eraseToAnyPublisher()
     }()
 
+    /// A subject that sends user interaction trigger updates.
     private var userInteractionSubject = PassthroughSubject<Void, Never>()
+
+    private let lock = NSRecursiveLock()
 
     private let titleStackView: UIStackView = {
         let stackView = UIStackView()
@@ -106,6 +113,8 @@ public class NavigationTitleContextView: UIView {
     private let subtitleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
+        label.alpha = 0.0
+        label.isHidden = true
         label.numberOfLines = 1
         label.textAlignment = .center
         label.minimumScaleFactor = 0.5
@@ -114,97 +123,8 @@ public class NavigationTitleContextView: UIView {
         return label
     }()
 
-    private lazy var displayAnimator = UIViewPropertyAnimator(duration: subtitleDisplayDuration,
-                                                              curve: animationCurve,
-                                                              animations: nil)
-
-    private lazy var hideAnimator = UIViewPropertyAnimator(duration: subtitleDisplayDuration,
-                                                           curve: animationCurve,
-                                                           animations: nil)
-
-    private func performAnimation(hideAfter duration: TimeInterval) {
-        subtitle == nil ? hideSubtitle() : displaySubtitle(hideAfter: duration)
-    }
-
-    private func displaySubtitle(hideAfter duration: TimeInterval? = nil) {
-
-        let displayDuration = duration ?? subtitleDisplayDuration
-
-        print("Displaying subtitle for \(displayDuration) seconds...")
-
-        // If the hiding animator is queued up, let's stop it and re-queue it.
-        // This implies that there is already text we're displaying. In this case,
-        // we simply just replace the copy and reset the animation timer.
-        if hideAnimator.isRunning {
-            hideAnimator.stopAnimation(false)
-            hideAnimator.finishAnimation(at: .start)
-        }
-
-        subtitleLabel.isHidden = false
-
-        prepareDisplayAnimator()
-        prepareHideAnimator()
-
-        displayAnimator.addCompletion { [weak self] _ in
-            guard let self = self else { return }
-            self.hideAnimator.startAnimation(afterDelay: displayDuration)
-        }
-
-        displayAnimator.startAnimation()
-    }
-
-    private func hideSubtitle() {
-        prepareHideAnimator()
-        hideAnimator.startAnimation()
-    }
-
-    private func resetAnimators() {
-        let runningAnimators = [displayAnimator, hideAnimator].filter(\.isRunning)
-        runningAnimators.forEach { animator in
-            print("Animation is running currently, forcing it to end!")
-            animator.stopAnimation(false)
-            animator.finishAnimation(at: .end)
-        }
-    }
-
-    public func setSubtitle(_ subtitle: String?, animated _: Bool = true, hideAfter duration: TimeInterval = 5.0) {
-        self.subtitle = subtitle
-        performAnimation(hideAfter: duration)
-    }
-
-    private func animator(with animations: (() -> Void)?) -> UIViewPropertyAnimator {
-        UIViewPropertyAnimator(duration: animateSubtitleUpdates ? animationDuration : 0.00001,
-                               curve: .easeInOut,
-                               animations: animations)
-    }
-
-    private func prepareDisplayAnimator() {
-        resetAnimators()
-        displayAnimator = animator { [weak self] in
-            guard let self = self else { return }
-            print("Queuing displaying subtitle animation.")
-            self.subtitleLabel.isHidden = false
-            self.subtitleLabel.alpha = 1.0
-            self.layoutIfNeeded()
-        }
-    }
-
-    private func prepareHideAnimator() {
-        resetAnimators()
-        hideAnimator = animator { [weak self] in
-            guard let self = self else { return }
-            print("Queuing hiding subtitle animation.")
-            self.subtitleLabel.alpha = 0.0
-            self.subtitleLabel.isHidden = true
-            self.layoutIfNeeded()
-        }
-    }
-
-    // MARK: - User Interaction Methods
-
-    @objc private func menuTapped() {
-        userInteractionSubject.send()
-    }
+    private var displayAnimator = UIViewPropertyAnimator()
+    private var hideAnimator = UIViewPropertyAnimator()
 
     // MARK: - Initializers
 
@@ -241,12 +161,114 @@ public class NavigationTitleContextView: UIView {
         ])
     }
 
-    // MARK: - Title Update Methods
+    // MARK: - Public Methods
 
-    func update(subtitle: String, duration: TimeInterval) {
-        self.subtitle = subtitle
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            self.subtitle = nil
+    /// Sets a subtitle to display and hide after a given duration.
+    /// - Parameters:
+    ///   - subtitle: The subtitle.
+    ///   - duration: The length at which the subtitle should be displayed. Defaults to `5.0`.
+    public func setSubtitle(_ subtitle: String?, hideAfter duration: TimeInterval = 5.0) {
+        DispatchQueue.main.async {
+            self.lock.lock()
+            self.animateSubtitleUpdates = false
+            self.subtitle = subtitle
+            self.animateSubtitleUpdates = true
+            self.performAnimation(hideAfter: duration)
+            self.lock.unlock()
         }
+    }
+
+    // MARK: - Private Methods
+
+    private func performAnimation(hideAfter duration: TimeInterval) {
+        subtitle == nil ? hideSubtitle() : displaySubtitle(hideAfter: duration)
+    }
+
+    private func displaySubtitle(hideAfter duration: TimeInterval? = nil) {
+
+        let displayDuration = duration ?? subtitleDisplayDuration
+
+        os_log(.debug, "Displaying subtitle for \(displayDuration) seconds...")
+
+        prepareDisplayAnimator()
+        prepareHideAnimator()
+
+        displayAnimator.addCompletion { [weak self] _ in
+            guard let self = self else { return }
+            self.hideAnimator.startAnimation(afterDelay: displayDuration)
+        }
+
+        displayAnimator.startAnimation()
+    }
+
+    private func hideSubtitle() {
+        prepareHideAnimator()
+        hideAnimator.startAnimation()
+    }
+
+    private func reset(animator: UIViewPropertyAnimator) {
+        guard animator.isRunning else { return }
+        os_log(.debug, "\(animator.description) is running currently, forcing it to end!")
+        animator.stopAnimation(true)
+        animator.finishAnimation(at: .end)
+    }
+
+    /// A convenience method that creates an `UIViewPropertyAnimator`.
+    /// - Parameter animations: A closure with animations to perform in this property animator.
+    /// - Returns: An `UIViewPropertyAnimator`.
+    private func animator(with animations: (() -> Void)?) -> UIViewPropertyAnimator {
+        UIViewPropertyAnimator(duration: animateSubtitleUpdates ? animationDuration : 0.00001,
+                               curve: .easeInOut,
+                               animations: animations)
+    }
+
+    private func prepareDisplayAnimator() {
+        reset(animator: displayAnimator)
+        displayAnimator = animator { [weak self] in
+            guard let self = self else { return }
+            os_log(.debug, "Queuing displaying subtitle animation.")
+
+            if self.subtitleLabel.isHidden {
+                self.subtitleLabel.isHidden = false
+                self.layoutIfNeeded()
+            }
+
+            self.subtitleLabel.alpha = 1.0
+        }
+
+        // TODO: Figure out why this doesn't want to animate in the completion block.
+        // For now, just add it into the original animator above.
+//        displayAnimator.addCompletion { [weak self] _ in
+//            guard let self = self else { return }
+//            UIViewPropertyAnimator.runningPropertyAnimator(withDuration: self.animationDuration,
+//                                                           delay: 0.0,
+//                                                           options: .curveEaseInOut) {
+//                self.subtitleLabel.alpha = 1.0
+//            }
+//        }
+    }
+
+    private func prepareHideAnimator() {
+        reset(animator: hideAnimator)
+        hideAnimator = animator { [weak self] in
+            guard let self = self else { return }
+            os_log(.debug, "Queuing hiding subtitle animation.")
+            self.subtitleLabel.alpha = 0.0
+        }
+
+        hideAnimator.addCompletion { [weak self] _ in
+            guard let self = self else { return }
+            UIViewPropertyAnimator.runningPropertyAnimator(withDuration: self.animationDuration,
+                                                           delay: 0.0,
+                                                           options: .curveEaseInOut) {
+                self.subtitleLabel.isHidden = true
+            }
+        }
+    }
+
+    // MARK: - User Interaction Methods
+
+    @objc private func menuTapped() {
+        userInteractionSubject.send()
     }
 }
