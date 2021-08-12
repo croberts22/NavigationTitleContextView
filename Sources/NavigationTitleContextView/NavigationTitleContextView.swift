@@ -66,6 +66,8 @@ public class NavigationTitleContextView: UIView {
 
     /// A subject that sends user interaction trigger updates.
     private var userInteractionSubject = PassthroughSubject<Void, Never>()
+    
+    private var cancellables = Set<AnyCancellable>()
 
     private let lock = NSRecursiveLock()
 
@@ -79,7 +81,7 @@ public class NavigationTitleContextView: UIView {
         return stackView
     }()
 
-    private let labelStackView: UIStackView = {
+    private let stackView: UIStackView = {
         let stackView = UIStackView()
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .vertical
@@ -95,6 +97,7 @@ public class NavigationTitleContextView: UIView {
         label.textAlignment = .center
         label.minimumScaleFactor = 0.25
         label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        label.font = .boldSystemFont(ofSize: label.font.pointSize)
         return label
     }()
 
@@ -145,20 +148,52 @@ public class NavigationTitleContextView: UIView {
         clipsToBounds = true
         tintColor = .label
 
-        addSubview(labelStackView)
+        addSubview(stackView)
 
         titleStackView.addArrangedSubview(titleLabel)
         titleStackView.addArrangedSubview(menuButton)
-        labelStackView.addArrangedSubview(titleStackView)
-        labelStackView.addArrangedSubview(subtitleLabel)
+        stackView.addArrangedSubview(titleStackView)
+        stackView.addArrangedSubview(subtitleLabel)
 
         NSLayoutConstraint.activate([
             menuButton.widthAnchor.constraint(equalToConstant: 10),
-            labelStackView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            labelStackView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            labelStackView.topAnchor.constraint(equalTo: topAnchor),
-            labelStackView.bottomAnchor.constraint(equalTo: layoutMarginsGuide.bottomAnchor)
+            stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stackView.topAnchor.constraint(equalTo: topAnchor),
+            stackView.bottomAnchor.constraint(equalTo: layoutMarginsGuide.bottomAnchor)
         ])
+        
+        setupObservers()
+    }
+    
+    private func setupObservers() {
+        NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)
+            .compactMap { $0.object as? UIDevice }
+            .sink { [weak self] device in
+                
+                self?.stackView.spacing = 4.0
+                self?.stackView.axis = .vertical
+                
+                // If we're dealing with regular sized devices, keep the spacing/axis the same.
+                guard self?.traitCollection.horizontalSizeClass == .compact else {
+                    return
+                }
+                
+                switch device.orientation {
+                case .landscapeLeft, .landscapeRight:
+                    self?.stackView.axis = .horizontal
+                    self?.stackView.spacing = 8.0
+                case .portrait, .portraitUpsideDown:
+                    break
+                case .faceUp, .faceDown:
+                    break
+                case .unknown:
+                    break
+                @unknown default:
+                    break
+                }
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Public Methods
@@ -188,7 +223,9 @@ public class NavigationTitleContextView: UIView {
 
         let displayDuration = duration ?? subtitleDisplayDuration
 
-        os_log(.debug, "Displaying subtitle for \(displayDuration) seconds...")
+        if #available(iOS 14.0, *) {
+            os_log(.debug, "Displaying subtitle for \(displayDuration) seconds...")
+        }
 
         prepareDisplayAnimator()
         prepareHideAnimator()
@@ -208,7 +245,9 @@ public class NavigationTitleContextView: UIView {
 
     private func reset(animator: UIViewPropertyAnimator) {
         guard animator.isRunning else { return }
-        os_log(.debug, "\(animator.description) is running currently, forcing it to end!")
+        if #available(iOS 14.0, *) {
+            os_log(.debug, "\(animator.description) is running currently, forcing it to end!")
+        }
         animator.stopAnimation(true)
         animator.finishAnimation(at: .end)
     }

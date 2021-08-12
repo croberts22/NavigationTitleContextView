@@ -95,6 +95,7 @@ public class NavigationTitleContextView: UIView {
         label.textAlignment = .center
         label.minimumScaleFactor = 0.25
         label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        label.font = .boldSystemFont(ofSize: 18.0)
         return label
     }()
 
