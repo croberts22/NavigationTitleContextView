@@ -16,8 +16,8 @@ public class NavigationTitleContextView: UIView {
 
     /// The title of the view.
     public var title: String? {
-        get { titleLabel.text }
-        set { titleLabel.text = newValue }
+        get { navigationTitleButton.title(for: .normal) }
+        set { navigationTitleButton.setTitle(newValue, for: .normal) }
     }
 
     /// The subtitle of the view. Depending on the properties set on this view,
@@ -49,10 +49,12 @@ public class NavigationTitleContextView: UIView {
     /// Defaults to using the `chevron.down` system image.
     public var contextMenuImage: UIImage? = UIImage(systemName: "chevron.down")?.withRenderingMode(.alwaysTemplate)
 
-    /// Determines if the context menu image should be visible. Defaults to `true`.
-    public lazy var shouldShowContextMenu: Bool = true {
+    /// Determines if the context menu image should be visible. Defaults to `false`.
+    public lazy var shouldShowContextMenu: Bool = false {
         didSet {
-            menuButton.isHidden = !shouldShowContextMenu
+            let image = shouldShowContextMenu ? contextMenuImage : nil
+            navigationTitleButton.setImage(image, for: .normal)
+            navigationTitleButton.isUserInteractionEnabled = shouldShowContextMenu
         }
     }
 
@@ -71,45 +73,25 @@ public class NavigationTitleContextView: UIView {
 
     private let lock = NSRecursiveLock()
 
-    private let titleStackView: UIStackView = {
-        let stackView = UIStackView()
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.axis = .horizontal
-        stackView.spacing = 4.0
-        stackView.distribution = .fillProportionally
-        stackView.alignment = .center
-        return stackView
-    }()
-
     private let stackView: UIStackView = {
         let stackView = UIStackView()
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .vertical
-        stackView.spacing = 4.0
+        stackView.spacing = 0.0
         stackView.distribution = .fillProportionally
         stackView.alignment = .center
         return stackView
     }()
 
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.textAlignment = .center
-        label.minimumScaleFactor = 0.25
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
-        label.font = .boldSystemFont(ofSize: label.font.pointSize)
-        return label
-    }()
-
-    private let menuButton: UIButton = {
+    private let navigationTitleButton: UIButton = {
         let button = UIButton(type: .system)
+        button.semanticContentAttribute = .forceRightToLeft
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setContentHuggingPriority(.required, for: .horizontal)
-
-        let image = UIImage(systemName: "chevron.down")?.withRenderingMode(.alwaysTemplate)
-        button.setImage(image, for: .normal)
+        button.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+        button.titleLabel?.font = .boldSystemFont(ofSize: button.titleLabel?.font.pointSize ?? 14.0)
         button.imageView?.contentMode = .scaleAspectFit
         button.addTarget(self, action: #selector(menuTapped), for: .touchUpInside)
+        button.imageEdgeInsets = .init(top: 6.0, left: 4.0, bottom: 6.0, right: 6.0)
         return button
     }()
 
@@ -121,7 +103,7 @@ public class NavigationTitleContextView: UIView {
         label.numberOfLines = 1
         label.textAlignment = .center
         label.minimumScaleFactor = 0.5
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        label.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         label.font = .systemFont(ofSize: 12.0)
         return label
     }()
@@ -150,50 +132,56 @@ public class NavigationTitleContextView: UIView {
 
         addSubview(stackView)
 
-        titleStackView.addArrangedSubview(titleLabel)
-        titleStackView.addArrangedSubview(menuButton)
-        stackView.addArrangedSubview(titleStackView)
+        stackView.addArrangedSubview(navigationTitleButton)
         stackView.addArrangedSubview(subtitleLabel)
 
         NSLayoutConstraint.activate([
-            menuButton.widthAnchor.constraint(equalToConstant: 10),
             stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
             stackView.topAnchor.constraint(equalTo: topAnchor),
-            stackView.bottomAnchor.constraint(equalTo: layoutMarginsGuide.bottomAnchor)
+            stackView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
         
         setupObservers()
+        updateOrientation(using: UIDevice.current)
     }
     
     private func setupObservers() {
         NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)
             .compactMap { $0.object as? UIDevice }
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] device in
-                
-                self?.stackView.spacing = 4.0
-                self?.stackView.axis = .vertical
-                
-                // If we're dealing with regular sized devices, keep the spacing/axis the same.
-                guard self?.traitCollection.horizontalSizeClass == .compact else {
-                    return
-                }
-                
-                switch device.orientation {
-                case .landscapeLeft, .landscapeRight:
-                    self?.stackView.axis = .horizontal
-                    self?.stackView.spacing = 8.0
-                case .portrait, .portraitUpsideDown:
-                    break
-                case .faceUp, .faceDown:
-                    break
-                case .unknown:
-                    break
-                @unknown default:
-                    break
-                }
+                self?.updateOrientation(using: device)
             }
             .store(in: &cancellables)
+    }
+    
+    private func updateOrientation(using device: UIDevice) {
+        
+        var spacing: CGFloat = 0.0
+        var axis: NSLayoutConstraint.Axis = .vertical
+        
+        // If we're dealing with regular sized devices, keep the spacing/axis the same.
+        guard traitCollection.horizontalSizeClass == .compact else {
+            return
+        }
+        
+        switch device.orientation {
+        case .landscapeLeft, .landscapeRight:
+            axis = .horizontal
+            spacing = 12.0
+        case .portrait, .portraitUpsideDown:
+            break
+        case .faceUp, .faceDown:
+            break
+        case .unknown:
+            break
+        @unknown default:
+            break
+        }
+        
+        stackView.axis = axis
+        stackView.spacing = spacing
     }
 
     // MARK: - Public Methods
@@ -220,6 +208,13 @@ public class NavigationTitleContextView: UIView {
     }
 
     private func displaySubtitle(hideAfter duration: TimeInterval? = nil) {
+        
+        // Sometimes, setting up the spacing for this stack view prior to the
+        // context view getting added to the view hierarchy can nullify updates
+        // and simply set the spacing to 0.
+        if stackView.spacing.isZero {
+            updateOrientation(using: UIDevice.current)
+        }
 
         let displayDuration = duration ?? subtitleDisplayDuration
 
