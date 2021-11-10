@@ -26,11 +26,30 @@ public class NavigationTitleContextView: UIView {
         get { subtitleLabel.text }
         set {
             subtitleLabel.text = newValue
-
             if animateSubtitleUpdates {
                 performAnimation(hideAfter: subtitleDisplayDuration)
             }
         }
+    }
+
+    public var titleFont: UIFont? {
+        get { navigationTitleButton.titleLabel?.font }
+        set { navigationTitleButton.titleLabel?.font = newValue }
+    }
+
+    public var subtitleFont: UIFont {
+        get { subtitleLabel.font }
+        set { subtitleLabel.font = newValue }
+    }
+
+    public var titleColor: UIColor {
+        get { navigationTitleButton.tintColor }
+        set { navigationTitleButton.tintColor = newValue }
+    }
+
+    public var subtitleColor: UIColor {
+        get { subtitleLabel.textColor }
+        set { subtitleLabel.textColor = newValue }
     }
 
     /// Determines if the subtitle should be animated. Defaults to `true`.
@@ -78,7 +97,7 @@ public class NavigationTitleContextView: UIView {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .vertical
         stackView.spacing = 0.0
-        stackView.distribution = .fillProportionally
+        stackView.distribution = .fill
         stackView.alignment = .center
         return stackView
     }()
@@ -86,18 +105,19 @@ public class NavigationTitleContextView: UIView {
     private let navigationTitleButton: UIButton = {
         let button = UIButton(type: .system)
         button.semanticContentAttribute = .forceRightToLeft
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         button.titleLabel?.font = .boldSystemFont(ofSize: button.titleLabel?.font.pointSize ?? 14.0)
+        button.titleLabel?.numberOfLines = 1
+        button.titleLabel?.lineBreakMode = .byTruncatingTail
         button.imageView?.contentMode = .scaleAspectFit
         button.addTarget(self, action: #selector(menuTapped), for: .touchUpInside)
-        button.imageEdgeInsets = .init(top: 6.0, left: 4.0, bottom: 6.0, right: 6.0)
+        button.imageEdgeInsets = .init(top: 7.0, left: 0.0, bottom: 5.0, right: 18.0)
+        button.titleEdgeInsets = .init(top: 0.0, left: -10.0, bottom: 0.0, right: 0.0)
+        button.contentEdgeInsets = .init(top: 0.0, left: 10.0, bottom: 0.0, right: 0.0)
         return button
     }()
 
     private let subtitleLabel: UILabel = {
         let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
         label.alpha = 0.0
         label.isHidden = true
         label.numberOfLines = 1
@@ -128,7 +148,6 @@ public class NavigationTitleContextView: UIView {
     private func setup() {
 
         clipsToBounds = true
-        tintColor = .label
 
         addSubview(stackView)
 
@@ -139,7 +158,7 @@ public class NavigationTitleContextView: UIView {
             stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
             stackView.topAnchor.constraint(equalTo: topAnchor),
-            stackView.bottomAnchor.constraint(equalTo: bottomAnchor)
+            stackView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
         
         setupObservers()
@@ -183,20 +202,37 @@ public class NavigationTitleContextView: UIView {
         stackView.axis = axis
         stackView.spacing = spacing
     }
+    
+    public override func tintColorDidChange() {
+        super.tintColorDidChange()
+        stackView.tintColor = tintColor
+        subtitleLabel.textColor = tintColor
+    }
 
     // MARK: - Public Methods
 
     /// Sets a subtitle to display and hide after a given duration.
     /// - Parameters:
-    ///   - subtitle: The subtitle.
+    ///   - payload: The message payload.
     ///   - duration: The length at which the subtitle should be displayed. Defaults to `5.0`.
-    public func setSubtitle(_ subtitle: String?, hideAfter duration: TimeInterval = 5.0) {
+    public func setSubtitle(_ payload: MessagePayload?, hideAfter duration: TimeInterval = 5.0) {
         DispatchQueue.main.async {
             self.lock.lock()
+
+            guard let payload = payload else {
+                self.subtitle = nil
+                return
+            }
+
             self.animateSubtitleUpdates = false
-            self.subtitle = subtitle
+            self.subtitle = payload.message
             self.animateSubtitleUpdates = true
             self.performAnimation(hideAfter: duration)
+
+            let feedbackGenerator = UINotificationFeedbackGenerator()
+            feedbackGenerator.prepare()
+            feedbackGenerator.notificationOccurred(payload.feedbackType)
+
             self.lock.unlock()
         }
     }

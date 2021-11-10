@@ -26,17 +26,24 @@ class ViewController: UITableViewController {
         navigationItem.titleView = titleView
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "CellIdentifier")
 
+        navigationItem.rightBarButtonItem = .init(systemItem: .add, primaryAction: nil, menu: nil)
+
+        titleView.shouldShowContextMenu = true
+
         titleView.userInteractionPublisher
             .sink { [weak self] in
                 let alert = UIAlertController(title: "You pressed me!", message: "What do you want to do?", preferredStyle: .actionSheet)
 
                 let animateAction = UIAlertAction(title: "Animate subtitle updates", style: .default) { [weak self] _ in
                     self?.titleView.animateSubtitleUpdates = true
+                    self?.titleView.title = "Animating all the things!"
+                    self?.titleView.titleFont = .boldSystemFont(ofSize: 18.0)
                     print("Subtitle updates will now be animated.")
                 }
 
                 let dontAnimateAction = UIAlertAction(title: "Don't animate subtitle updates", style: .default) { [weak self] _ in
                     self?.titleView.animateSubtitleUpdates = false
+                    self?.titleView.title = "No moar animations!"
                     print("Subtitle updates will now _not_ be animated.")
                 }
 
@@ -77,7 +84,7 @@ extension ViewController {
     override func tableView(_: UITableView, didSelectRowAt indexPath: IndexPath) {
         switch indexPath.row {
         case 0:
-            titleView.setSubtitle("Displaying a long subtitle for two seconds...", hideAfter: 2.0)
+            titleView.setSubtitle(.standard("Displaying a long subtitle for two seconds..."), hideAfter: 2.0)
         case 1:
             titleView.subtitle = "This subtitle will get interrupted in two seconds..."
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
