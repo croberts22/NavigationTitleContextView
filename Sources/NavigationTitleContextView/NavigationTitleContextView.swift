@@ -87,7 +87,7 @@ public class NavigationTitleContextView: UIView {
 
     /// A subject that sends user interaction trigger updates.
     private var userInteractionSubject = PassthroughSubject<Void, Never>()
-    
+
     private var cancellables = Set<AnyCancellable>()
 
     private let lock = NSRecursiveLock()
@@ -160,11 +160,11 @@ public class NavigationTitleContextView: UIView {
             stackView.topAnchor.constraint(equalTo: topAnchor),
             stackView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
-        
+
         setupObservers()
         updateOrientation(using: UIDevice.current)
     }
-    
+
     private func setupObservers() {
         NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)
             .compactMap { $0.object as? UIDevice }
@@ -174,17 +174,17 @@ public class NavigationTitleContextView: UIView {
             }
             .store(in: &cancellables)
     }
-    
+
     private func updateOrientation(using device: UIDevice) {
-        
+
         var spacing: CGFloat = 0.0
         var axis: NSLayoutConstraint.Axis = .vertical
-        
+
         // If we're dealing with regular sized devices, keep the spacing/axis the same.
         guard traitCollection.horizontalSizeClass == .compact else {
             return
         }
-        
+
         switch device.orientation {
         case .landscapeLeft, .landscapeRight:
             axis = .horizontal
@@ -198,12 +198,12 @@ public class NavigationTitleContextView: UIView {
         @unknown default:
             break
         }
-        
+
         stackView.axis = axis
         stackView.spacing = spacing
     }
-    
-    public override func tintColorDidChange() {
+
+    override public func tintColorDidChange() {
         super.tintColorDidChange()
         stackView.tintColor = tintColor
         subtitleLabel.textColor = tintColor
@@ -214,8 +214,9 @@ public class NavigationTitleContextView: UIView {
     /// Sets a subtitle to display and hide after a given duration.
     /// - Parameters:
     ///   - payload: The message payload.
+    ///   - generateFeedback: A boolean that determines whether haptic feedback should be generated. Defaults to `true`.
     ///   - duration: The length at which the subtitle should be displayed. Defaults to `5.0`.
-    public func setSubtitle(_ payload: MessagePayload?, hideAfter duration: TimeInterval = 5.0) {
+    public func setSubtitle(_ payload: MessagePayload?, generateFeedback: Bool = true, hideAfter duration: TimeInterval = 5.0) {
         DispatchQueue.main.async {
             self.lock.lock()
 
@@ -229,9 +230,11 @@ public class NavigationTitleContextView: UIView {
             self.animateSubtitleUpdates = true
             self.performAnimation(hideAfter: duration)
 
-            let feedbackGenerator = UINotificationFeedbackGenerator()
-            feedbackGenerator.prepare()
-            feedbackGenerator.notificationOccurred(payload.feedbackType)
+            if generateFeedback {
+                let feedbackGenerator = UINotificationFeedbackGenerator()
+                feedbackGenerator.prepare()
+                feedbackGenerator.notificationOccurred(payload.feedbackType)
+            }
 
             self.lock.unlock()
         }
@@ -244,7 +247,7 @@ public class NavigationTitleContextView: UIView {
     }
 
     private func displaySubtitle(hideAfter duration: TimeInterval? = nil) {
-        
+
         // Sometimes, setting up the spacing for this stack view prior to the
         // context view getting added to the view hierarchy can nullify updates
         // and simply set the spacing to 0.

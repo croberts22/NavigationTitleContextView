@@ -1,6 +1,6 @@
 //
 //  MessagePayload.swift
-//  
+//
 //
 //  Created by Corey Roberts on 11/8/21.
 //
@@ -12,11 +12,11 @@ public enum MessagePayload {
 
     public var message: String {
         switch self {
-        case .standard(let string):
+        case let .standard(string):
             return string
-        case .success(let string):
+        case let .success(string):
             return string
-        case .failure(let string):
+        case let .failure(string):
             return string
         }
     }
