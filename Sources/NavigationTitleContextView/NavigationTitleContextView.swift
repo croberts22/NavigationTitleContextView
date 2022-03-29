@@ -68,6 +68,37 @@ public class NavigationTitleContextView: UIView {
     /// Defaults to using the `chevron.down` system image.
     public var contextMenuImage: UIImage? = UIImage(systemName: "chevron.down")?.withRenderingMode(.alwaysTemplate)
 
+    /// A menu interaction that can be attached to the context menu.
+    public var contextMenuInteraction: UIContextMenuInteraction? {
+        didSet {
+            guard let contextMenuInteraction = contextMenuInteraction else { return }
+            
+            if #available(iOS 14.0, *) {
+                navigationTitleButton.menu = nil
+            }
+            navigationTitleButton.addInteraction(contextMenuInteraction)
+        }
+    }
+
+    /// A context menu that can be attached to this view.
+    /// - Note: This property is only available for iOS 14 and up.
+    public var contextMenu: UIMenu? {
+        didSet {
+            guard let contextMenu = contextMenu else { return }
+
+            if !navigationTitleButton.interactions.isEmpty {
+                navigationTitleButton.interactions.forEach {
+                    navigationTitleButton.removeInteraction($0)
+                }
+            }
+
+            if #available(iOS 14.0, *) {
+                navigationTitleButton.menu = contextMenu
+                navigationTitleButton.showsMenuAsPrimaryAction = true
+            }
+        }
+    }
+
     /// Determines if the context menu image should be visible. Defaults to `false`.
     public lazy var shouldShowContextMenu: Bool = false {
         didSet {
