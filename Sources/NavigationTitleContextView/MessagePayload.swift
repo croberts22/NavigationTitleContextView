@@ -7,7 +7,7 @@
 
 import UIKit
 
-public enum MessagePayload {
+public enum MessagePayload: Equatable, Hashable {
     case standard(String), success(String), failure(String)
 
     public var message: String {
@@ -29,6 +29,19 @@ public enum MessagePayload {
             return .success
         case .failure:
             return .error
+        }
+    }
+
+    public static func ==(lhs: MessagePayload, rhs: MessagePayload) -> Bool {
+        switch (lhs, rhs) {
+        case let (.standard(lhsString), .standard(rhsString)):
+            return lhsString == rhsString
+        case let (.success(lhsString), .success(rhsString)):
+            return lhsString == rhsString
+        case let (.failure(lhsString), .failure(rhsString)):
+            return lhsString == rhsString
+        default:
+            return false
         }
     }
 }
