@@ -248,27 +248,25 @@ public class NavigationTitleContextView: UIView {
     ///   - generateFeedback: A boolean that determines whether haptic feedback should be generated. Defaults to `true`.
     ///   - duration: The length at which the subtitle should be displayed. Defaults to `5.0`.
     public func setSubtitle(_ payload: MessagePayload?, generateFeedback: Bool = true, hideAfter duration: TimeInterval = 5.0) {
-        DispatchQueue.main.async {
-            self.lock.lock()
+        lock.lock()
 
-            guard let payload = payload else {
-                self.subtitle = nil
-                return
-            }
-
-            self.animateSubtitleUpdates = false
-            self.subtitle = payload.message
-            self.animateSubtitleUpdates = true
-            self.performAnimation(hideAfter: duration)
-
-            if generateFeedback {
-                let feedbackGenerator = UINotificationFeedbackGenerator()
-                feedbackGenerator.prepare()
-                feedbackGenerator.notificationOccurred(payload.feedbackType)
-            }
-
-            self.lock.unlock()
+        guard let payload = payload else {
+            subtitle = nil
+            return
         }
+
+        animateSubtitleUpdates = false
+        subtitle = payload.message
+        animateSubtitleUpdates = true
+        performAnimation(hideAfter: duration)
+
+        if generateFeedback {
+            let feedbackGenerator = UINotificationFeedbackGenerator()
+            feedbackGenerator.prepare()
+            feedbackGenerator.notificationOccurred(payload.feedbackType)
+        }
+
+        lock.unlock()
     }
 
     // MARK: - Private Methods
