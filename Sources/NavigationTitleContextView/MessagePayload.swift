@@ -8,7 +8,7 @@
 import UIKit
 
 public enum MessagePayload: Equatable, Hashable {
-    case standard(String), success(String), failure(String)
+    case standard(String), success(String), warning(String), failure(String)
 
     public var message: String {
         switch self {
@@ -16,17 +16,21 @@ public enum MessagePayload: Equatable, Hashable {
             return string
         case let .success(string):
             return string
+        case let .warning(string):
+            return string
         case let .failure(string):
             return string
         }
     }
 
-    var feedbackType: UINotificationFeedbackGenerator.FeedbackType {
+    var feedbackType: UINotificationFeedbackGenerator.FeedbackType? {
         switch self {
         case .standard:
-            return .success
+            return nil
         case .success:
             return .success
+        case .warning:
+            return .warning
         case .failure:
             return .error
         }
@@ -37,6 +41,8 @@ public enum MessagePayload: Equatable, Hashable {
         case let (.standard(lhsString), .standard(rhsString)):
             return lhsString == rhsString
         case let (.success(lhsString), .success(rhsString)):
+            return lhsString == rhsString
+        case let (.warning(lhsString), .warning(rhsString)):
             return lhsString == rhsString
         case let (.failure(lhsString), .failure(rhsString)):
             return lhsString == rhsString

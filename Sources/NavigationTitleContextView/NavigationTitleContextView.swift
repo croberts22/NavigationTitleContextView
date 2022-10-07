@@ -133,7 +133,7 @@ public class NavigationTitleContextView: UIView {
         return stackView
     }()
 
-    private let navigationTitleButton: UIButton = {
+    private lazy var navigationTitleButton: UIButton = {
         let button = UIButton(type: .system)
         button.semanticContentAttribute = .forceRightToLeft
         button.titleLabel?.font = .boldSystemFont(ofSize: button.titleLabel?.font.pointSize ?? 14.0)
@@ -260,10 +260,10 @@ public class NavigationTitleContextView: UIView {
         animateSubtitleUpdates = true
         performAnimation(hideAfter: duration)
 
-        if generateFeedback {
+        if generateFeedback, let feedbackType = payload.feedbackType {
             let feedbackGenerator = UINotificationFeedbackGenerator()
             feedbackGenerator.prepare()
-            feedbackGenerator.notificationOccurred(payload.feedbackType)
+            feedbackGenerator.notificationOccurred(feedbackType)
         }
 
         lock.unlock()
