@@ -153,7 +153,8 @@ public class NavigationTitleContextView: UIView {
         label.isHidden = true
         label.numberOfLines = 1
         label.textAlignment = .center
-        label.minimumScaleFactor = 0.5
+        label.minimumScaleFactor = 0.25
+        label.allowsDefaultTighteningForTruncation = true
         label.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         label.font = .systemFont(ofSize: 12.0)
         return label
