@@ -58,8 +58,8 @@ public class NavigationTitleContextView: UIView {
     /// The length at which the subtitle should remain visible before it disappears. Defaults to `3.0` seconds.
     public var subtitleDisplayDuration: TimeInterval = 3.0
 
-    /// The animation duration for animating the subtitle. Defaults to `0.3` seconds.
-    public var animationDuration: TimeInterval = 0.3
+    /// The animation duration for animating the subtitle. Defaults to `0.25` seconds.
+    public var animationDuration: TimeInterval = 0.25
 
     /// The animation curve for animating the subtitle. Defaults to `.easeInOut`.
     public var animationCurve: UIView.AnimationCurve = .easeInOut
@@ -120,6 +120,9 @@ public class NavigationTitleContextView: UIView {
     private var userInteractionSubject = PassthroughSubject<Void, Never>()
 
     private var cancellables = Set<AnyCancellable>()
+
+    private var isCurrentlyDisplayingMessage = false
+    private var messageQueue = [Message]()
 
     private let lock = NSRecursiveLock()
 
@@ -248,7 +251,8 @@ public class NavigationTitleContextView: UIView {
     ///   - payload: The message payload.
     ///   - generateFeedback: A boolean that determines whether haptic feedback should be generated. Defaults to `true`.
     ///   - duration: The length at which the subtitle should be displayed. Defaults to `5.0`.
-    public func setSubtitle(_ payload: MessagePayload?, generateFeedback: Bool = true, hideAfter duration: TimeInterval = 5.0) {
+    ///   - clearQueueOnSet: Determines if this message should clear the queue and immediately show this message. Defaults to `false`.
+    public func setSubtitle(_ payload: MessagePayload?, generateFeedback: Bool = true, hideAfter duration: TimeInterval = 5.0, clearQueueOnSet: Bool = false) {
         lock.lock()
 
         guard let payload = payload else {
@@ -256,12 +260,44 @@ public class NavigationTitleContextView: UIView {
             return
         }
 
-        animateSubtitleUpdates = false
-        subtitle = payload.message
-        animateSubtitleUpdates = true
-        performAnimation(hideAfter: duration)
+        let message = Message(payload: payload,
+                              shouldGenerateFeedback: generateFeedback,
+                              duration: duration)
 
-        if generateFeedback, let feedbackType = payload.feedbackType {
+        // Reset everything.
+        if clearQueueOnSet {
+            messageQueue.removeAll()
+            isCurrentlyDisplayingMessage = false
+        }
+
+        messageQueue.append(message)
+
+        if !isCurrentlyDisplayingMessage {
+            displayNextMessage()
+        }
+
+        lock.unlock()
+    }
+
+    // MARK: - Private Methods
+
+    private func displayNextMessage() {
+        lock.lock()
+
+        guard !messageQueue.isEmpty else { return }
+
+        isCurrentlyDisplayingMessage = true
+        let message = messageQueue.removeFirst()
+        if #available(iOS 14.0, *) {
+            os_log(.debug, "Displaying message: \(message.payload.message)")
+        }
+
+        animateSubtitleUpdates = false
+        subtitle = message.payload.message
+        animateSubtitleUpdates = true
+        performAnimation(hideAfter: message.duration)
+
+        if message.shouldGenerateFeedback, let feedbackType = message.payload.feedbackType {
             let feedbackGenerator = UINotificationFeedbackGenerator()
             feedbackGenerator.prepare()
             feedbackGenerator.notificationOccurred(feedbackType)
@@ -269,8 +305,6 @@ public class NavigationTitleContextView: UIView {
 
         lock.unlock()
     }
-
-    // MARK: - Private Methods
 
     private func performAnimation(hideAfter duration: TimeInterval) {
         subtitle == nil ? hideSubtitle() : displaySubtitle(hideAfter: duration)
@@ -365,6 +399,11 @@ public class NavigationTitleContextView: UIView {
                                                            delay: 0.0,
                                                            options: .curveEaseInOut) {
                 self.subtitleLabel.isHidden = true
+
+                DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + Double(Int64(0.1 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)) {
+                    self.isCurrentlyDisplayingMessage = false
+                    self.displayNextMessage()
+                }
             }
         }
     }
