@@ -16,8 +16,8 @@ public class NavigationTitleContextView: UIView {
 
     /// The title of the view.
     public var title: String? {
-        get { navigationTitleButton.title(for: .normal) }
-        set { navigationTitleButton.setTitle(newValue, for: .normal) }
+        get { navigationTitleButton.title }
+        set { navigationTitleButton.title = newValue }
     }
 
     /// The subtitle of the view. Depending on the properties set on this view,
@@ -32,9 +32,9 @@ public class NavigationTitleContextView: UIView {
         }
     }
 
-    public var titleFont: UIFont? {
-        get { navigationTitleButton.titleLabel?.font }
-        set { navigationTitleButton.titleLabel?.font = newValue }
+    public var titleFont: UIFont {
+        get { navigationTitleButton.font }
+        set { navigationTitleButton.font = newValue }
     }
 
     public var subtitleFont: UIFont {
@@ -68,11 +68,17 @@ public class NavigationTitleContextView: UIView {
     /// Defaults to using the `chevron.down` system image.
     public var contextMenuImage: UIImage? = UIImage(systemName: "chevron.down")?.withRenderingMode(.alwaysTemplate)
 
+    override public var alpha: CGFloat {
+        didSet {
+            print("** did set \(alpha)")
+        }
+    }
+
     /// A menu interaction that can be attached to the context menu.
     public var contextMenuInteraction: UIContextMenuInteraction? {
         didSet {
             guard let contextMenuInteraction = contextMenuInteraction else { return }
-            
+
             if #available(iOS 14.0, *) {
                 navigationTitleButton.menu = nil
             }
@@ -103,18 +109,16 @@ public class NavigationTitleContextView: UIView {
     public lazy var shouldShowContextMenu: Bool = false {
         didSet {
             let image = shouldShowContextMenu ? contextMenuImage : nil
-            navigationTitleButton.setImage(image, for: .normal)
+            navigationTitleButton.configure(icon: image)
             navigationTitleButton.isUserInteractionEnabled = shouldShowContextMenu
         }
     }
 
     /// A publisher that emits user interaction updates, particularly when the user taps on the context menu.
     /// This publisher emits no events if `shouldShowContextMenu` is `false`.
-    public lazy var userInteractionPublisher: AnyPublisher<Void, Never> = {
-        userInteractionSubject
-            .receive(on: DispatchQueue.main)
-            .eraseToAnyPublisher()
-    }()
+    public lazy var userInteractionPublisher: AnyPublisher<Void, Never> = userInteractionSubject
+        .receive(on: DispatchQueue.main)
+        .eraseToAnyPublisher()
 
     /// A subject that sends user interaction trigger updates.
     private var userInteractionSubject = PassthroughSubject<Void, Never>()
@@ -136,17 +140,9 @@ public class NavigationTitleContextView: UIView {
         return stackView
     }()
 
-    private lazy var navigationTitleButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.semanticContentAttribute = .forceRightToLeft
-        button.titleLabel?.font = .boldSystemFont(ofSize: button.titleLabel?.font.pointSize ?? 14.0)
-        button.titleLabel?.numberOfLines = 1
-        button.titleLabel?.lineBreakMode = .byTruncatingTail
-        button.imageView?.contentMode = .scaleAspectFit
+    private lazy var navigationTitleButton: DropdownButton = {
+        let button = DropdownButton()
         button.addTarget(self, action: #selector(menuTapped), for: .touchUpInside)
-        button.imageEdgeInsets = .init(top: 7.0, left: 0.0, bottom: 5.0, right: 18.0)
-        button.titleEdgeInsets = .init(top: 0.0, left: -10.0, bottom: 0.0, right: 0.0)
-        button.contentEdgeInsets = .init(top: 0.0, left: 10.0, bottom: 0.0, right: 0.0)
         return button
     }()
 
@@ -193,7 +189,7 @@ public class NavigationTitleContextView: UIView {
             stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
             stackView.topAnchor.constraint(equalTo: topAnchor),
-            stackView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            stackView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
         setupObservers()

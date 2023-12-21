@@ -11,7 +11,7 @@ let package = Package(
         .library(
             name: "NavigationTitleContextView",
             targets: ["NavigationTitleContextView"]
-        ),
+        )
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.

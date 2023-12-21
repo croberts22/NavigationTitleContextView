@@ -79,11 +79,9 @@ public class NavigationTitleContextView: UIView {
 
     /// A publisher that emits user interaction updates, particularly when the user taps on the context menu.
     /// This publisher emits no events if `shouldShowContextMenu` is `false`.
-    public lazy var userInteractionPublisher: AnyPublisher<Void, Never> = {
-        userInteractionSubject
-            .receive(on: DispatchQueue.main)
-            .eraseToAnyPublisher()
-    }()
+    public lazy var userInteractionPublisher: AnyPublisher<Void, Never> = userInteractionSubject
+        .receive(on: DispatchQueue.main)
+        .eraseToAnyPublisher()
 
     /// A subject that sends user interaction trigger updates.
     private var userInteractionSubject = PassthroughSubject<Void, Never>()
@@ -158,7 +156,7 @@ public class NavigationTitleContextView: UIView {
             stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
             stackView.topAnchor.constraint(equalTo: topAnchor),
-            stackView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            stackView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
         setupObservers()

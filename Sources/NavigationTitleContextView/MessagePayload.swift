@@ -36,7 +36,7 @@ public enum MessagePayload: Equatable, Hashable {
         }
     }
 
-    public static func ==(lhs: MessagePayload, rhs: MessagePayload) -> Bool {
+    public static func == (lhs: MessagePayload, rhs: MessagePayload) -> Bool {
         switch (lhs, rhs) {
         case let (.standard(lhsString), .standard(rhsString)):
             return lhsString == rhsString
