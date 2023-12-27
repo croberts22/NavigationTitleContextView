@@ -25,10 +25,19 @@ public final class DropdownButton: UIControl {
         set { titleLabel.text = newValue }
     }
 
+    public var color: UIColor {
+        get { titleLabel.textColor }
+        set {
+            titleLabel.textColor = newValue
+            iconImageView.tintColor = newValue
+        }
+    }
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
+        label.minimumScaleFactor = 0.5
         label.font = .boldSystemFont(ofSize: 14.0)
         return label
     }()
@@ -41,10 +50,18 @@ public final class DropdownButton: UIControl {
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
+        setup()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
+        setup()
+    }
+
+    override public func tintColorDidChange() {
+        super.tintColorDidChange()
+        titleLabel.tintColor = tintColor
+        iconImageView.tintColor = tintColor
     }
 
     // MARK: - Setup Methods
@@ -56,6 +73,7 @@ public final class DropdownButton: UIControl {
 
     private func setupViews() {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
         addSubview(titleLabel)
 
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
@@ -64,13 +82,13 @@ public final class DropdownButton: UIControl {
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: layoutMarginsGuide.leadingAnchor),
-            titleLabel.topAnchor.constraint(equalTo: layoutMarginsGuide.topAnchor),
-            titleLabel.bottomAnchor.constraint(equalTo: layoutMarginsGuide.bottomAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            titleLabel.topAnchor.constraint(equalTo: topAnchor),
+            titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: iconImageView.leadingAnchor),
-            iconImageView.trailingAnchor.constraint(equalTo: layoutMarginsGuide.trailingAnchor),
-            iconImageView.topAnchor.constraint(equalTo: layoutMarginsGuide.topAnchor),
-            iconImageView.bottomAnchor.constraint(equalTo: layoutMarginsGuide.bottomAnchor)
+            iconImageView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            iconImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            iconImageView.heightAnchor.constraint(equalToConstant: 16.0)
         ])
     }
 

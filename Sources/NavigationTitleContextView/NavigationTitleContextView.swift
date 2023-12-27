@@ -43,8 +43,8 @@ public class NavigationTitleContextView: UIView {
     }
 
     public var titleColor: UIColor {
-        get { navigationTitleButton.tintColor }
-        set { navigationTitleButton.tintColor = newValue }
+        get { navigationTitleButton.color }
+        set { navigationTitleButton.color = newValue }
     }
 
     public var subtitleColor: UIColor {
@@ -180,8 +180,11 @@ public class NavigationTitleContextView: UIView {
 
         clipsToBounds = true
 
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.setContentHuggingPriority(.defaultHigh, for: .vertical)
         addSubview(stackView)
 
+        navigationTitleButton.translatesAutoresizingMaskIntoConstraints = false
         stackView.addArrangedSubview(navigationTitleButton)
         stackView.addArrangedSubview(subtitleLabel)
 
@@ -237,6 +240,7 @@ public class NavigationTitleContextView: UIView {
     override public func tintColorDidChange() {
         super.tintColorDidChange()
         stackView.tintColor = tintColor
+        navigationTitleButton.tintColor = tintColor
         subtitleLabel.textColor = tintColor
     }
 
