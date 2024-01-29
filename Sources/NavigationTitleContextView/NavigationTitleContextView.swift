@@ -78,30 +78,30 @@ public class NavigationTitleContextView: UIView {
     public var contextMenuInteraction: UIContextMenuInteraction? {
         didSet {
             guard let contextMenuInteraction = contextMenuInteraction else { return }
-
-            if #available(iOS 14.0, *) {
-                navigationTitleButton.menu = nil
-            }
             navigationTitleButton.addInteraction(contextMenuInteraction)
         }
     }
 
     /// A context menu that can be attached to this view.
-    /// - Note: This property is only available for iOS 14 and up.
     public var contextMenu: UIMenu? {
         didSet {
-            guard let contextMenu = contextMenu else { return }
-
             if !navigationTitleButton.interactions.isEmpty {
                 navigationTitleButton.interactions.forEach {
                     navigationTitleButton.removeInteraction($0)
                 }
             }
 
-            if #available(iOS 14.0, *) {
-                navigationTitleButton.menu = contextMenu
-                navigationTitleButton.showsMenuAsPrimaryAction = true
-            }
+            let contextMenuInteraction = UIContextMenuInteraction(delegate: navigationTitleButton)
+
+            let configuration = UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+                self?.contextMenu
+            })
+
+            navigationTitleButton.showsMenuAsPrimaryAction = true
+            navigationTitleButton.isUserInteractionEnabled = true
+            navigationTitleButton.addInteraction(contextMenuInteraction)
+            navigationTitleButton.contextMenuConfiguration = configuration
+            navigationTitleButton.isContextMenuInteractionEnabled = true
         }
     }
 
@@ -152,8 +152,9 @@ public class NavigationTitleContextView: UIView {
         label.isHidden = true
         label.numberOfLines = 1
         label.textAlignment = .center
-        label.minimumScaleFactor = 0.25
+        label.minimumScaleFactor = 0.5
         label.allowsDefaultTighteningForTruncation = true
+        label.adjustsFontSizeToFitWidth = true
         label.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         label.font = .systemFont(ofSize: 12.0)
         return label
@@ -185,6 +186,8 @@ public class NavigationTitleContextView: UIView {
         addSubview(stackView)
 
         navigationTitleButton.translatesAutoresizingMaskIntoConstraints = false
+        navigationTitleButton.setContentHuggingPriority(.required, for: .horizontal)
+        navigationTitleButton.configure(icon: nil)
         stackView.addArrangedSubview(navigationTitleButton)
         stackView.addArrangedSubview(subtitleLabel)
 
@@ -288,9 +291,7 @@ public class NavigationTitleContextView: UIView {
 
         isCurrentlyDisplayingMessage = true
         let message = messageQueue.removeFirst()
-        if #available(iOS 14.0, *) {
-            os_log(.debug, "Displaying message: \(message.payload.message)")
-        }
+        os_log(.debug, "Displaying message: \(message.payload.message)")
 
         animateSubtitleUpdates = false
         subtitle = message.payload.message
@@ -321,9 +322,7 @@ public class NavigationTitleContextView: UIView {
 
         let displayDuration = duration ?? subtitleDisplayDuration
 
-        if #available(iOS 14.0, *) {
-            os_log(.debug, "Displaying subtitle for \(displayDuration) seconds...")
-        }
+        os_log(.debug, "Displaying subtitle for \(displayDuration) seconds...")
 
         prepareDisplayAnimator()
         prepareHideAnimator()
@@ -343,9 +342,7 @@ public class NavigationTitleContextView: UIView {
 
     private func reset(animator: UIViewPropertyAnimator) {
         guard animator.isRunning else { return }
-        if #available(iOS 14.0, *) {
-            os_log(.debug, "\(animator.description) is running currently, forcing it to end!")
-        }
+        os_log(.debug, "\(animator.description) is running currently, forcing it to end!")
         animator.stopAnimation(true)
         animator.finishAnimation(at: .end)
     }

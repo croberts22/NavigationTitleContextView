@@ -7,11 +7,13 @@
 
 import UIKit
 
+// MARK: - DropdownButton
+
 public final class DropdownButton: UIControl {
 
-    public var menu: UIMenu? {
+    override public var isHighlighted: Bool {
         didSet {
-            print("did set")
+            print("*** did highlight")
         }
     }
 
@@ -33,11 +35,18 @@ public final class DropdownButton: UIControl {
         }
     }
 
+    public var contextMenuConfiguration: UIContextMenuConfiguration?
+
+    private var iconWidthAnchor: NSLayoutConstraint?
+
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.numberOfLines = 1
+        label.textAlignment = .center
+        label.numberOfLines = 2
         label.lineBreakMode = .byTruncatingTail
         label.minimumScaleFactor = 0.5
+        label.allowsDefaultTighteningForTruncation = true
+        label.adjustsFontSizeToFitWidth = true
         label.font = .boldSystemFont(ofSize: 14.0)
         return label
     }()
@@ -72,8 +81,10 @@ public final class DropdownButton: UIControl {
     }
 
     private func setupViews() {
+        isUserInteractionEnabled = true
+
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+        titleLabel.setContentHuggingPriority(.required, for: .vertical)
         addSubview(titleLabel)
 
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
@@ -90,6 +101,9 @@ public final class DropdownButton: UIControl {
             iconImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
             iconImageView.heightAnchor.constraint(equalToConstant: 16.0)
         ])
+
+        iconWidthAnchor = iconImageView.widthAnchor.constraint(equalToConstant: 16.0)
+        iconWidthAnchor?.isActive = true
     }
 
     // MARK: - Configuration Methods
@@ -100,10 +114,18 @@ public final class DropdownButton: UIControl {
 
     public func configure(icon: UIImage?) {
         iconImageView.image = icon
+        iconWidthAnchor?.constant = icon != nil ? 16.0 : 0.0
+        layoutIfNeeded()
     }
 
     public func configure(title: String?, icon: UIImage?) {
         configure(title: title)
         configure(icon: icon)
+    }
+}
+
+public extension DropdownButton {
+    override func contextMenuInteraction(_: UIContextMenuInteraction, configurationForMenuAtLocation _: CGPoint) -> UIContextMenuConfiguration? {
+        contextMenuConfiguration
     }
 }
